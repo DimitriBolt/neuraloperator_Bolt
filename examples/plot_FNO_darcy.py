@@ -20,6 +20,9 @@ from neuralop.utils import count_model_params
 from neuralop import LpLoss, H1Loss
 
 device = 'cpu'
+import random
+
+random.seed(0)
 
 
 # %%
@@ -57,7 +60,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
 l2loss = LpLoss(d=2, p=2)
 h1loss = H1Loss(d=2)
 
-train_loss = h1loss  # используем при обучении
+train_loss = l2loss  # используем при обучении
 eval_losses={'h1': h1loss, 'l2': l2loss}
 
 
