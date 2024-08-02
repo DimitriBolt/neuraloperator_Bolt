@@ -1,4 +1,9 @@
+import os
+
+import pandas
 import torch
+from click import pass_obj
+from pandas import DataFrame, Series
 from torch.cuda import amp
 from torch import nn
 from timeit import default_timer
@@ -71,7 +76,7 @@ class Trainer:
         optimizer,
         scheduler,
         regularizer=None,
-        training_loss=None,
+        training_loss=None, # Получили для использования
         eval_losses=None,
         save_every: int=None,
         save_best: int=None,
@@ -154,7 +159,9 @@ class Trainer:
             print(f'Testing on {[len(loader.dataset) for loader in test_loaders.values()]} samples'
                   f'         on resolutions {[name for name in test_loaders]}.')
             sys.stdout.flush()
-        
+
+        losses_df = pandas.DataFrame(columns=['train_err', '16_h1', '16_l2', "32_h1", '32_l2'])
+
         for epoch in range(self.n_epochs):
             train_err, avg_loss, avg_lasso_loss, epoch_train_time =\
                   self.train_one_epoch(epoch, train_loader, training_loss)
@@ -171,19 +178,32 @@ class Trainer:
                                                 eval_losses=eval_losses,
                                                 test_loaders=test_loaders)
 
-                epoch_metrics.update(**eval_metrics)
+                epoch_metrics.update(**eval_metrics) # все данные по одной эпохе
+
+
                 # save checkpoint if conditions are met
                 if save_best is not None:
                     if eval_metrics[save_best] < best_metric_value:
                         best_metric_value = eval_metrics[save_best]
                         self.checkpoint(save_dir)
 
+            # TODO тут надо накапливать данные с каждой эпохи. Но! Важно поставить валидацию на каждой эпохе.
+            epoch_metrics.update({"epoch": epoch})
+            epoch_metrics_df: DataFrame = pandas.DataFrame.from_records([epoch_metrics])
+            losses_df: DataFrame = pandas.concat([losses_df, epoch_metrics_df], ignore_index=True)
+            pass
+
             # save checkpoint if save_every and save_best is not set
             if self.save_every is not None:
                 if epoch % self.save_every == 0:
                     self.checkpoint(save_dir)
 
-        return epoch_metrics
+        pass
+        # TODO  Цикл закончился, можно ↑ строить графики и сохранять.
+        losses_df.set_index(keys="epoch", drop=True, append=False, inplace=True, verify_integrity=True)
+
+        losses_df.to_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss.name + "_l" + str(self.model.n_layers) + "_e" + str(epoch+1) +'.pkl'))
+        return epoch_metrics # возвращает последние значения ошибок
 
     def train_one_epoch(self, epoch, train_loader, training_loss):
         """train_one_epoch trains self.model on train_loader
@@ -244,7 +264,8 @@ class Trainer:
         lr = None
         for pg in self.optimizer.param_groups:
             lr = pg["lr"]
-        if self.verbose and epoch % self.eval_interval == 0:
+        # Это для печати на экран
+        if self.verbose and epoch % self.eval_interval == 0: # тут идёт печать.
             self.log_training(
                 epoch=epoch,
                 time=epoch_train_time,
@@ -439,7 +460,7 @@ class Trainer:
         else:
             return eval_step_losses, None
     
-    def log_training(self, 
+    def log_training(self, # тут идёт печать
             epoch:int,
             time: float,
             avg_loss: float,
