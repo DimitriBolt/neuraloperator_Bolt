@@ -66,7 +66,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
 l2loss = LpLoss(d=2, p=2)
 h1loss = H1Loss(d=2)
 
-train_loss = h1loss
+train_loss = h1loss  # используем при обучении
 eval_losses={'h1': h1loss, 'l2': l2loss}
 
 
@@ -89,7 +89,7 @@ trainer = Trainer(model=model, n_epochs=20,
                   device=device,
                   data_processor=data_processor,
                   wandb_log=False,
-                  eval_interval=3,
+                  eval_interval=1, # Здесь задаём как часто печатаются логи на экран.
                   use_distributed=False,
                   verbose=True)
 
@@ -102,7 +102,7 @@ trainer.train(train_loader=train_loader,
               optimizer=optimizer,
               scheduler=scheduler, 
               regularizer=False, 
-              training_loss=train_loss,
+              training_loss=train_loss, # Передали для использования
               eval_losses=eval_losses)
 
 # %%
