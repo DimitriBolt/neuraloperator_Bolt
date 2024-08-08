@@ -52,7 +52,7 @@ sys.stdout.flush()
 optimizer = torch.optim.Adam(model.parameters(), 
                                 lr=8e-3, 
                                 weight_decay=1e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=300)
 
 
 # %%
@@ -78,7 +78,7 @@ sys.stdout.flush()
 
 # %% 
 # Create the trainer
-trainer = Trainer(model=model, n_epochs=20,
+trainer = Trainer(model=model, n_epochs=200,
                   device=device,
                   data_processor=data_processor,
                   wandb_log=False,
