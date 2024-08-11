@@ -24,7 +24,7 @@ from neuralop.utils import count_model_params
 # device = 'cuda'
 
 # %%
-train_loss_str, n_epochs, device, n_layers = 'l2loss', 10, 'cuda', 3
+train_loss, n_epochs, device, n_layers = H1Loss(d=2), 10, 'cuda', 3
 import random
 
 random.seed(0)
@@ -64,15 +64,6 @@ l2loss = LpLoss(d=2, p=2)
 h1loss = H1Loss(d=2)
 
 # train_loss = l2loss  # используем при обучении
-match train_loss_str:
-    case "l2loss":
-        train_loss = l2loss
-    case "h1loss":
-        train_loss = h1loss
-    # If an exact match is not confirmed, this last case will be used if provided
-    case _:
-        train_loss = l2loss
-
 eval_losses = {'h1': h1loss, 'l2': l2loss}
 
 # %%
@@ -155,4 +146,4 @@ for index in range(3):
 
 fig.suptitle('Inputs, ground-truth output and prediction.', y=0.98)
 plt.tight_layout()
-fig.show()
+# fig.show()

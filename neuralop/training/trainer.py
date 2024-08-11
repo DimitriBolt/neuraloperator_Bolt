@@ -1,19 +1,17 @@
 import os
+import sys
+from pathlib import Path
+from timeit import default_timer
+from typing import Union
 
 import pandas
 import torch
-from click import pass_obj
-from pandas import DataFrame, Series
-from torch.cuda import amp
-from torch import nn
-from timeit import default_timer
-from pathlib import Path
-from typing import Union
-import sys
 import wandb
+from pandas import DataFrame
+from torch import nn
+from torch.cuda import amp
 
-import neuralop.mpu.comm as comm
-from neuralop.losses import LpLoss
+from neuralop.losses import LpLoss, H1Loss
 from .training_state import load_training_state, save_training_state
 
 
@@ -21,19 +19,20 @@ class Trainer:
     """
     A general Trainer class to train neural-operators on given datasets
     """
+
     def __init__(
-        self,
-        *,
-        model: nn.Module,
-        n_epochs: int,
-        wandb_log: bool=False,
-        device: str='cpu',
-        amp_autocast: bool=False,
-        data_processor: nn.Module=None,
-        eval_interval: int=1,
-        log_output: bool=False,
-        use_distributed: bool=False,
-        verbose: bool=False,
+            self,
+            *,
+            model: nn.Module,
+            n_epochs: int,
+            wandb_log: bool = False,
+            device: str = 'cpu',
+            amp_autocast: bool = False,
+            data_processor: nn.Module = None,
+            eval_interval: int = 1,
+            log_output: bool = False,
+            use_distributed: bool = False,
+            verbose: bool = False,
     ):
         """
         Parameters
@@ -70,18 +69,18 @@ class Trainer:
         self.data_processor = data_processor
 
     def train(
-        self,
-        train_loader,
-        test_loaders,
-        optimizer,
-        scheduler,
-        regularizer=None,
-        training_loss=None, # Получили для использования
-        eval_losses=None,
-        save_every: int=None,
-        save_best: int=None,
-        save_dir: Union[str, Path]="./ckpt",
-        resume_from_dir: Union[str, Path]=None,
+            self,
+            train_loader,
+            test_loaders,
+            optimizer,
+            scheduler,
+            regularizer=None,
+            training_loss=None,  # Получили для использования
+            eval_losses: dict[str, H1Loss | LpLoss] = None,
+            save_every: int = None,
+            save_best: int = None,
+            save_dir: Union[str, Path] = "./ckpt",
+            resume_from_dir: Union[str, Path] = None,
     ):
         """Trains the given model on the given datasets.
 
@@ -133,7 +132,7 @@ class Trainer:
 
         if eval_losses is None:  # By default just evaluate on the training loss
             eval_losses = dict(l2=training_loss)
-        
+
         # accumulated wandb metrics
         self.wandb_epoch_metrics = None
 
@@ -148,7 +147,7 @@ class Trainer:
             for name in test_loaders.keys():
                 for metric in eval_losses.keys():
                     metrics.append(f"{name}_{metric}")
-            assert self.save_best in metrics,\
+            assert self.save_best in metrics, \
                 f"Error: expected a metric of the form <loader_name>_<metric>, got {save_best}"
             best_metric_value = float('inf')
             # either monitor metric or save on interval, exclusive for simplicity
@@ -163,23 +162,22 @@ class Trainer:
         losses_df = pandas.DataFrame(columns=['train_err', '16_h1', '16_l2', "32_h1", '32_l2'])
 
         for epoch in range(self.n_epochs):
-            train_err, avg_loss, avg_lasso_loss, epoch_train_time =\
-                  self.train_one_epoch(epoch, train_loader, training_loss)
+            train_err, avg_loss, avg_lasso_loss, epoch_train_time = \
+                self.train_one_epoch(epoch, train_loader, training_loss)
             epoch_metrics = dict(
                 train_err=train_err,
                 avg_loss=avg_loss,
                 avg_lasso_loss=avg_lasso_loss,
                 epoch_train_time=epoch_train_time
             )
-            
+
             if epoch % self.eval_interval == 0:
                 # evaluate and gather metrics across each loader in test_loaders
                 eval_metrics = self.evaluate_all(epoch=epoch,
-                                                eval_losses=eval_losses,
-                                                test_loaders=test_loaders)
+                                                 eval_losses=eval_losses,
+                                                 test_loaders=test_loaders)
 
-                epoch_metrics.update(**eval_metrics) # все данные по одной эпохе
-
+                epoch_metrics.update(**eval_metrics)  # все данные по одной эпохе
 
                 # save checkpoint if conditions are met
                 if save_best is not None:
@@ -202,8 +200,8 @@ class Trainer:
         # TODO  Цикл закончился, можно ↑ строить графики и сохранять.
         losses_df.set_index(keys="epoch", drop=True, append=False, inplace=True, verify_integrity=True)
 
-        losses_df.to_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss.name + "_l" + str(self.model.n_layers) + "_e" + str(epoch+1) +'.pkl'))
-        return epoch_metrics # возвращает последние значения ошибок
+        losses_df.to_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss.name + "_l" + str(self.model.n_layers) + "_e" + str(epoch + 1) + '.pkl'))
+        return epoch_metrics  # возвращает последние значения ошибок
 
     def train_one_epoch(self, epoch, train_loader, training_loss):
         """train_one_epoch trains self.model on train_loader
@@ -231,12 +229,12 @@ class Trainer:
             self.data_processor.train()
         t1 = default_timer()
         train_err = 0.0
-        
+
         # track number of training examples in batch
         self.n_samples = 0
 
         for idx, sample in enumerate(train_loader):
-            
+
             loss = self.train_one_batch(idx, sample, training_loss)
             loss.backward()
             self.optimizer.step()
@@ -260,12 +258,12 @@ class Trainer:
             avg_lasso_loss /= self.n_samples
         else:
             avg_lasso_loss = None
-        
+
         lr = None
         for pg in self.optimizer.param_groups:
             lr = pg["lr"]
         # Это для печати на экран
-        if self.verbose and epoch % self.eval_interval == 0: # тут идёт печать.
+        if self.verbose and epoch % self.eval_interval == 0:  # тут идёт печать.
             self.log_training(
                 epoch=epoch,
                 time=epoch_train_time,
@@ -282,12 +280,12 @@ class Trainer:
         all_metrics = {}
         for loader_name, loader in test_loaders.items():
             loader_metrics = self.evaluate(eval_losses, loader,
-                                    log_prefix=loader_name)   
+                                           log_prefix=loader_name)
             all_metrics.update(**loader_metrics)
         self.log_eval(epoch=epoch,
                       eval_metrics=all_metrics)
         return all_metrics
-    
+
     def evaluate(self, loss_dict, data_loader, log_prefix="", epoch=None):
         """Evaluates the model on a dictionary of losses
 
@@ -324,16 +322,16 @@ class Trainer:
 
                 for loss_name, val_loss in eval_step_losses.items():
                     errors[f"{log_prefix}_{loss_name}"] += val_loss
-            
+
         for key in errors.keys():
             errors[key] /= self.n_samples
 
         # on last batch, log model outputs
         if self.log_output:
-                errors[f"{log_prefix}_outputs"] = wandb.Image(outs)
-        
+            errors[f"{log_prefix}_outputs"] = wandb.Image(outs)
+
         return errors
-    
+
     def on_epoch_start(self, epoch):
         """on_epoch_start runs at the beginning
         of each training epoch. This method is a stub
@@ -389,7 +387,7 @@ class Trainer:
                 out = self.model(**sample)
         else:
             out = self.model(**sample)
-        
+
         if self.epoch == 0 and idx == 0 and self.verbose:
             print(f"Raw outputs of shape {out.shape}")
 
@@ -406,13 +404,13 @@ class Trainer:
 
         if self.regularizer:
             loss += self.regularizer.loss
-        
+
         return loss
-    
+
     def eval_one_batch(self,
                        sample: dict,
                        eval_losses: dict,
-                       return_output: bool=False):
+                       return_output: bool = False):
         """eval_one_batch runs inference on one batch
         and returns eval_losses for that batch.
 
@@ -448,26 +446,26 @@ class Trainer:
 
         if self.data_processor is not None:
             out, sample = self.data_processor.postprocess(out, sample)
-        
+
         eval_step_losses = {}
 
         for loss_name, loss in eval_losses.items():
             val_loss = loss(out, **sample)
             eval_step_losses[loss_name] = val_loss
-        
+
         if return_output:
             return eval_step_losses, out
         else:
             return eval_step_losses, None
-    
-    def log_training(self, # тут идёт печать
-            epoch:int,
-            time: float,
-            avg_loss: float,
-            train_err: float,
-            avg_lasso_loss: float=None,
-            lr: float=None
-            ):
+
+    def log_training(self,  # тут идёт печать
+                     epoch: int,
+                     time: float,
+                     avg_loss: float,
+                     train_err: float,
+                     avg_lasso_loss: float = None,
+                     lr: float = None
+                     ):
         """Basic method to log results
         from a single training epoch. 
         
@@ -503,12 +501,12 @@ class Trainer:
 
         print(msg)
         sys.stdout.flush()
-        
+
         if self.wandb_log:
             wandb.log(data=values_to_log,
-                      step=epoch+1,
+                      step=epoch + 1,
                       commit=False)
-    
+
     def log_eval(self,
                  epoch: int,
                  eval_metrics: dict):
@@ -530,15 +528,15 @@ class Trainer:
             if isinstance(value, float) or isinstance(value, torch.Tensor):
                 msg += f"{metric}={value:.4f}, "
             if self.wandb_log:
-                values_to_log[metric] = value       
-        
-        msg = f"Eval: " + msg[:-2] # cut off last comma+space
+                values_to_log[metric] = value
+
+        msg = f"Eval: " + msg[:-2]  # cut off last comma+space
         print(msg)
         sys.stdout.flush()
 
         if self.wandb_log:
             wandb.log(data=values_to_log,
-                      step=epoch+1,
+                      step=epoch + 1,
                       commit=True)
 
     def resume_state_from_dir(self, save_dir):
@@ -564,10 +562,10 @@ class Trainer:
                                         state dict named model.pt or best_model.pt.")
         # returns model, loads other modules in-place if provided
         self.model = load_training_state(save_dir=save_dir, save_name=save_name,
-                                                model=self.model,
-                                                optimizer=self.optimizer,
-                                                regularizer=self.regularizer,
-                                                scheduler=self.scheduler)
+                                         model=self.model,
+                                         optimizer=self.optimizer,
+                                         regularizer=self.regularizer,
+                                         scheduler=self.scheduler)
 
     def checkpoint(self, save_dir):
         """checkpoint saves current training state
@@ -583,7 +581,7 @@ class Trainer:
             save_name = 'best_model'
         else:
             save_name = "model"
-        save_training_state(save_dir=save_dir, 
+        save_training_state(save_dir=save_dir,
                             save_name=save_name,
                             model=self.model,
                             optimizer=self.optimizer,
@@ -592,5 +590,3 @@ class Trainer:
                             )
         if self.verbose:
             print(f"Saved training state to {save_dir}")
-
-       
