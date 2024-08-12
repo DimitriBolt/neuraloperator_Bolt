@@ -19,12 +19,14 @@ from neuralop import LpLoss, H1Loss
 from neuralop import Trainer
 from neuralop.data.datasets import load_darcy_flow_small
 from neuralop.models import TFNO
+# %%
+from neuralop.parameters import Parameters
 from neuralop.utils import count_model_params
 
 # device = 'cuda'
 
-# %%
-train_loss, n_epochs, device, n_layers = H1Loss(d=2), 10, 'cuda', 3
+parameters: Parameters = Parameters(file_name=sys.argv[1])
+train_loss, n_epochs, device, n_layers = parameters.get_parameters()
 import random
 
 random.seed(0)
@@ -48,8 +50,6 @@ model = model.to(device)
 n_params = count_model_params(model)
 print(f'\nOur model has {n_params} parameters.')
 sys.stdout.flush()
-
-
 
 # %%
 #Create the optimizer
@@ -96,6 +96,7 @@ trainer.train(train_loader=train_loader,
               scheduler=scheduler,
               regularizer=False,
               training_loss=train_loss,  # Передали для использования
+              training_loss_for_comparison=h1loss if train_loss == l2loss else l2loss,  # Передали для сравнения
               eval_losses=eval_losses)
 
 # %%

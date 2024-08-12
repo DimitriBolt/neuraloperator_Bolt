@@ -76,6 +76,7 @@ class Trainer:
             scheduler,
             regularizer=None,
             training_loss=None,  # Получили для использования
+            training_loss_for_comparison=None,  # Получили для сравнения
             eval_losses: dict[str, H1Loss | LpLoss] = None,
             save_every: int = None,
             save_best: int = None,
@@ -86,6 +87,7 @@ class Trainer:
 
         Parameters
         -----------
+        training_loss_for_comparison: training.losses function
         train_loader: torch.utils.data.DataLoader
             training dataloader
         test_loaders: dict[torch.utils.data.DataLoader]
