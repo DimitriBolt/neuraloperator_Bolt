@@ -1,16 +1,16 @@
 import os
-import pandas
+
 import matplotlib.pyplot as plt
+import pandas
 from sympy.stats.sampling.sample_numpy import numpy
 
 training_loss_1 = "H1_2DLoss"
-n_layers =  4
-epoch = 200 - 1
+n_layers = 3
+epoch = 10 - 1
 err_1 = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss_1 + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
 
 training_loss_2 = "L2_2Dloss"
 err_2 = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss_2 + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
-
 
 fig, ax = plt.subplots(figsize=(11, 8.5))
 ax.plot(err_1.index.astype(int),
@@ -38,6 +38,5 @@ ax.set_title('Losses during training. \nTrain resolution = 16x16[const], test_re
 ax.set_xlabel('Epoch')
 plt.grid()
 plt.show()
-
 
 pass

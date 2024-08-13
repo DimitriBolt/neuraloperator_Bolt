@@ -131,6 +131,7 @@ class Trainer:
 
         if training_loss is None:
             training_loss = LpLoss(d=2)
+            training_loss_for_comparison = H1Loss(d=2)  # ???
 
         if eval_losses is None:  # By default just evaluate on the training loss
             eval_losses = dict(l2=training_loss)
@@ -161,15 +162,16 @@ class Trainer:
                   f'         on resolutions {[name for name in test_loaders]}.')
             sys.stdout.flush()
 
-        losses_df = pandas.DataFrame(columns=['train_err', '16_h1', '16_l2', "32_h1", '32_l2'])
+        losses_df = pandas.DataFrame(columns=['train_err', '16_h1', '16_l2', "32_h1", '32_l2'])  # TODO fix and add. Change train_err to avg_loss
 
         for epoch in range(self.n_epochs):
-            train_err, avg_loss, avg_lasso_loss, epoch_train_time = \
-                self.train_one_epoch(epoch, train_loader, training_loss)
+            train_err, avg_loss, avg_loss_for_comparison, avg_lasso_loss, epoch_train_time = self.train_one_epoch(epoch, train_loader, training_loss,
+                                                                                                                  training_loss_for_comparison=training_loss_for_comparison)  # TODO добавить training_loss_for_comparison
             epoch_metrics = dict(
                 train_err=train_err,
                 avg_loss=avg_loss,
                 avg_lasso_loss=avg_lasso_loss,
+                avg_loss_for_comparison=avg_loss_for_comparison,
                 epoch_train_time=epoch_train_time
             )
 
@@ -201,11 +203,10 @@ class Trainer:
         pass
         # TODO  Цикл закончился, можно ↑ строить графики и сохранять.
         losses_df.set_index(keys="epoch", drop=True, append=False, inplace=True, verify_integrity=True)
-
         losses_df.to_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss.name + "_l" + str(self.model.n_layers) + "_e" + str(epoch + 1) + '.pkl'))
         return epoch_metrics  # возвращает последние значения ошибок
 
-    def train_one_epoch(self, epoch, train_loader, training_loss):
+    def train_one_epoch(self, epoch, train_loader, training_loss, training_loss_for_comparison):
         """train_one_epoch trains self.model on train_loader
         for one epoch and returns training metrics
 
@@ -225,6 +226,7 @@ class Trainer:
         """
         self.on_epoch_start(epoch)
         avg_loss = 0
+        avg_loss_for_comparison = 0
         avg_lasso_loss = 0
         self.model.train()
         if self.data_processor:
@@ -237,7 +239,9 @@ class Trainer:
 
         for idx, sample in enumerate(train_loader):
 
-            loss = self.train_one_batch(idx, sample, training_loss)
+            # sample_for_comparison = sample.copy()
+            loss, loss_for_comparison = self.train_one_batch(idx, sample, training_loss, training_loss_for_comparison=training_loss_for_comparison)
+            # loss_for_comparison = self.train_one_batch(idx, sample, training_loss_for_comparison)
             loss.backward()
             self.optimizer.step()
 
@@ -246,6 +250,7 @@ class Trainer:
                 avg_loss += loss.item()
                 if self.regularizer:
                     avg_lasso_loss += self.regularizer.loss
+                avg_loss_for_comparison += loss_for_comparison.item()
 
         if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             self.scheduler.step(train_err)
@@ -256,6 +261,7 @@ class Trainer:
 
         train_err /= len(train_loader)
         avg_loss /= self.n_samples
+        avg_loss_for_comparison /= self.n_samples
         if self.regularizer:
             avg_lasso_loss /= self.n_samples
         else:
@@ -275,7 +281,7 @@ class Trainer:
                 lr=lr
             )
 
-        return train_err, avg_loss, avg_lasso_loss, epoch_train_time
+        return train_err, avg_loss, avg_loss_for_comparison, avg_lasso_loss, epoch_train_time
 
     def evaluate_all(self, epoch, eval_losses, test_loaders):
         # evaluate and gather metrics across each loader in test_loaders
@@ -351,12 +357,13 @@ class Trainer:
         self.epoch = epoch
         return None
 
-    def train_one_batch(self, idx, sample, training_loss):
+    def train_one_batch(self, idx, sample, training_loss, training_loss_for_comparison):
         """Run one batch of input through model
            and return training loss on outputs
 
         Parameters
         ----------
+        training_loss_for_comparison
         idx : int
             index of batch within train_loader
         sample : dict
@@ -397,17 +404,21 @@ class Trainer:
             out, sample = self.data_processor.postprocess(out, sample)
 
         loss = 0.0
+        loss_for_comparison = 0.0
 
         if self.amp_autocast:
             with amp.autocast(enabled=True):
                 loss += training_loss(out, **sample)
+                loss_for_comparison += training_loss_for_comparison(out.detach(), **sample)
         else:
             loss += training_loss(out, **sample)
+            loss_for_comparison += training_loss_for_comparison(out.detach(), **sample)
 
         if self.regularizer:
             loss += self.regularizer.loss
+            # loss_for_comparison += self.regularizer.loss
 
-        return loss
+        return loss, loss_for_comparison
 
     def eval_one_batch(self,
                        sample: dict,
