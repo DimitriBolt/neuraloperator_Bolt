@@ -5,8 +5,8 @@ import pandas
 from sympy.stats.sampling.sample_numpy import numpy
 
 H1_2DLoss_label = "H1_2DLoss"
-n_layers = 3
-epoch = 10 - 1
+n_layers = 4
+epoch = 50 - 1
 H1_2DLoss_df = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', H1_2DLoss_label + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
 
 L2_2Dloss_label = "L2_2Dloss"
@@ -22,14 +22,14 @@ ax.plot(H1_2DLoss_df.index.astype(int),
 ax.plot(H1_2DLoss_df.index.astype(int),
         H1_2DLoss_df["avg_loss_for_comparison"],
         label=H1_2DLoss_label + ' for comparison, n_layers =' + str(n_layers),
-        color='green',
-        linestyle='solid')
+        color='red',
+        linestyle='dashed')
 
 ax.plot(L2_2Dloss_df.index.astype(int),
         L2_2Dloss_df["avg_loss"],
         label=L2_2Dloss_label + ' for train, n_layers =' + str(n_layers),
-        color='red',
-        linestyle='dashed')
+        color='green',
+        linestyle='solid')
 
 ax.plot(L2_2Dloss_df.index.astype(int),
         L2_2Dloss_df["avg_loss_for_comparison"],
