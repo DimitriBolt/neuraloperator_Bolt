@@ -15,7 +15,6 @@ class Parameters:
     file_name: str = '/home/dimitri/Documents/fno_darcy.py.ini'
 
     def __init__(self, file_name='/home/dimitri/Documents/fno_darcy.py.ini') -> None:
-        # TODO: Load .ini file
         self.file_name = file_name
         config_parser: ConfigParser = ConfigParser()
         config_parser.read(self.file_name)
