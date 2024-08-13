@@ -56,7 +56,7 @@ sys.stdout.flush()
 optimizer = torch.optim.Adam(model.parameters(),
                              lr=8e-3,
                              weight_decay=1e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=round(n_epochs * 1.2))
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=round(n_epochs * 1.5))
 
 # %%
 # Creating the losses
