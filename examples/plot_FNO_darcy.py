@@ -96,7 +96,7 @@ trainer.train(train_loader=train_loader,
               scheduler=scheduler,
               regularizer=False,
               training_loss=train_loss,  # Передали для использования
-              training_loss_for_comparison=h1loss if train_loss == l2loss else l2loss,  # Передали для сравнения
+              training_loss_for_comparison=h1loss if train_loss.name == l2loss.name else l2loss,  # Передали для сравнения
               eval_losses=eval_losses)
 
 # %%

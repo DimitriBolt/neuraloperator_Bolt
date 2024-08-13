@@ -4,27 +4,38 @@ import matplotlib.pyplot as plt
 import pandas
 from sympy.stats.sampling.sample_numpy import numpy
 
-training_loss_1 = "H1_2DLoss"
+H1_2DLoss_label = "H1_2DLoss"
 n_layers = 3
 epoch = 10 - 1
-err_1 = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss_1 + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
+H1_2DLoss_df = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', H1_2DLoss_label + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
 
-training_loss_2 = "L2_2Dloss"
-err_2 = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', training_loss_2 + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
+L2_2Dloss_label = "L2_2Dloss"
+L2_2Dloss_df = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', L2_2Dloss_label + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
 
 fig, ax = plt.subplots(figsize=(11, 8.5))
-ax.plot(err_1.index.astype(int),
-        err_1["train_err"],
-        label=training_loss_1 + ' for train, n_layers =' + str(n_layers),
+ax.plot(H1_2DLoss_df.index.astype(int),
+        H1_2DLoss_df["avg_loss"],
+        label=H1_2DLoss_label + ' for train, n_layers =' + str(n_layers),
+        color='red',
+        linestyle='solid')
+
+ax.plot(H1_2DLoss_df.index.astype(int),
+        H1_2DLoss_df["avg_loss_for_comparison"],
+        label=H1_2DLoss_label + ' for comparison, n_layers =' + str(n_layers),
+        color='green',
+        linestyle='solid')
+
+ax.plot(L2_2Dloss_df.index.astype(int),
+        L2_2Dloss_df["avg_loss"],
+        label=L2_2Dloss_label + ' for train, n_layers =' + str(n_layers),
+        color='red',
+        linestyle='dashed')
+
+ax.plot(L2_2Dloss_df.index.astype(int),
+        L2_2Dloss_df["avg_loss_for_comparison"],
+        label=L2_2Dloss_label + ' for comparison, n_layers =' + str(n_layers),
         color='green',
         linestyle='dashed')
-# ax.plot(epoch_list, train_err_list_l2_h1, label='H1 as reference (L2 for train)', color='green')
-
-ax.plot(err_2.index.astype(int),
-        err_2["train_err"],
-        label=training_loss_2 + ' for train, n_layers =' + str(n_layers),
-        color='red')
-# ax.plot(epoch_list, train_err_list_h1_l2, label='L2 as reference (H1 for train)', linestyle='dashed', color='red')
 
 
 ax.legend(loc='upper right')
