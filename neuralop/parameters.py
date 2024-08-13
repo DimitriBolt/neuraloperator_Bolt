@@ -14,7 +14,7 @@ class Parameters:
     n_layers: int = 3
     file_name: str = '/home/dimitri/Documents/fno_darcy.py.ini'
 
-    def __init__(self, file_name='/home/dimitri/Documents/fno_darcy.py.ini') -> None:
+    def __init__(self, file_name='/home/dimitri/Documents/fno_darcy.ini') -> None:
         self.file_name = file_name
         config_parser: ConfigParser = ConfigParser()
         config_parser.read(self.file_name)
@@ -39,7 +39,7 @@ class Parameters:
 
 
 if __name__ == '__main__':
-    parameters: Parameters = Parameters(file_name='/home/dimitri/Documents/fno_darcy.py.ini')
+    parameters: Parameters = Parameters(file_name='/home/dimitri/Documents/fno_darcy.ini')
     shape: tuple[LpLoss | H1Loss, int, str, int] = parameters.get_parameters()
     # Save the shape of the array
     with open(join(expanduser("~"), "Documents", 'file_name.pickle'), 'wb') as f:
