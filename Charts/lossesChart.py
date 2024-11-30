@@ -6,7 +6,7 @@ from sympy.stats.sampling.sample_numpy import numpy
 
 H1_2DLoss_label = "H1_2DLoss"
 n_layers = 4
-epoch = 50 - 1
+epoch = 200 - 1
 H1_2DLoss_df = pandas.read_pickle(os.path.join(os.path.expanduser('~'), 'Documents', H1_2DLoss_label + "_l" + str(n_layers) + "_e" + str(epoch + 1) + '.pkl'))
 
 L2_2Dloss_label = "L2_2Dloss"
