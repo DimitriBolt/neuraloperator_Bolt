@@ -12,28 +12,27 @@ be trained on a CPU in a few seconds, whereas normally we would train on one or 
 # %%
 # 
 
-import torch
-import matplotlib.pyplot as plt
 import sys
-from neuralop.models import FNO
-from neuralop import Trainer
-from neuralop.training import AdamW
-from neuralop.data.datasets import load_darcy_flow_small
-from neuralop.utils import count_model_params
+
+import matplotlib.pyplot as plt
+import torch
+
 from neuralop import LpLoss, H1Loss
+from neuralop import Trainer
+from neuralop.data.datasets import load_darcy_flow_small
+from neuralop.models import FNO
+from neuralop.training import AdamW
+from neuralop.utils import count_model_params
 
 device = 'cpu'
-import random
-
-random.seed(0)
 
 
 # %%
 # Let's load the small Darcy-flow dataset. 
 train_loader, test_loaders, data_processor = load_darcy_flow_small(
-        n_train=1000, batch_size=32, 
-        test_resolutions=[16, 32], n_tests=[100, 50],
-        test_batch_sizes=[32, 32],
+    n_train=1000, batch_size=32,
+    test_resolutions=[16, 32], n_tests=[100, 50],
+    test_batch_sizes=[32, 32],
 )
 data_processor = data_processor.to(device)
 
@@ -42,10 +41,10 @@ data_processor = data_processor.to(device)
 # We create a simple FNO model
 
 model = FNO(n_modes=(16, 16),
-             in_channels=1, 
-             out_channels=1,
-             hidden_channels=32, 
-             projection_channel_ratio=2)
+            in_channels=1,
+            out_channels=1,
+            hidden_channels=32,
+            projection_channel_ratio=2)
 model = model.to(device)
 
 n_params = count_model_params(model)
@@ -58,9 +57,9 @@ sys.stdout.flush()
 
 # %%
 #Create the optimizer
-optimizer = AdamW(model.parameters(), 
-                                lr=8e-3, 
-                                weight_decay=1e-4)
+optimizer = AdamW(model.parameters(),
+                  lr=8e-3,
+                  weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
 
 
@@ -69,9 +68,8 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
 l2loss = LpLoss(d=2, p=2)
 h1loss = H1Loss(d=2)
 
-train_loss = l2loss  # используем при обучении
-eval_losses={'h1': h1loss, 'l2': l2loss}
-
+train_loss = h1loss
+eval_losses = {'h1': h1loss, 'l2': l2loss}
 
 # %%
 # Training the model
@@ -85,14 +83,13 @@ print(f'\n * Train: {train_loss}')
 print(f'\n * Test: {eval_losses}')
 sys.stdout.flush()
 
-
-# %% 
+# %%
 # Create the trainer:
 trainer = Trainer(model=model, n_epochs=20,
                   device=device,
                   data_processor=data_processor,
                   wandb_log=False,
-                  eval_interval=1, # Здесь задаём как часто печатаются логи на экран.
+                  eval_interval=3,
                   use_distributed=False,
                   verbose=True)
 
@@ -103,9 +100,9 @@ trainer = Trainer(model=model, n_epochs=20,
 trainer.train(train_loader=train_loader,
               test_loaders=test_loaders,
               optimizer=optimizer,
-              scheduler=scheduler, 
-              regularizer=False, 
-              training_loss=train_loss, # Передали для использования
+              scheduler=scheduler,
+              regularizer=False,
+              training_loss=train_loss,
               eval_losses=eval_losses)
 
 # %%
@@ -130,23 +127,23 @@ for index in range(3):
     # Model prediction
     out = model(x.unsqueeze(0))
 
-    ax = fig.add_subplot(3, 3, index*3 + 1)
+    ax = fig.add_subplot(3, 3, index * 3 + 1)
     ax.imshow(x[0], cmap='gray')
-    if index == 0: 
+    if index == 0:
         ax.set_title('Input x')
     plt.xticks([], [])
     plt.yticks([], [])
 
-    ax = fig.add_subplot(3, 3, index*3 + 2)
+    ax = fig.add_subplot(3, 3, index * 3 + 2)
     ax.imshow(y.squeeze())
-    if index == 0: 
+    if index == 0:
         ax.set_title('Ground-truth y')
     plt.xticks([], [])
     plt.yticks([], [])
 
-    ax = fig.add_subplot(3, 3, index*3 + 3)
+    ax = fig.add_subplot(3, 3, index * 3 + 3)
     ax.imshow(out.squeeze().detach().numpy())
-    if index == 0: 
+    if index == 0:
         ax.set_title('Model prediction')
     plt.xticks([], [])
     plt.yticks([], [])
@@ -154,7 +151,6 @@ for index in range(3):
 fig.suptitle('Inputs, ground-truth output and prediction (16x16).', y=0.98)
 plt.tight_layout()
 fig.show()
-
 
 # %%
 # .. zero_shot :
@@ -177,21 +173,21 @@ for index in range(3):
     # Model prediction
     out = model(x.unsqueeze(0))
 
-    ax = fig.add_subplot(3, 3, index*3 + 1)
+    ax = fig.add_subplot(3, 3, index * 3 + 1)
     ax.imshow(x[0], cmap='gray')
     if index == 0: 
         ax.set_title('Input x')
     plt.xticks([], [])
     plt.yticks([], [])
 
-    ax = fig.add_subplot(3, 3, index*3 + 2)
+    ax = fig.add_subplot(3, 3, index * 3 + 2)
     ax.imshow(y.squeeze())
     if index == 0: 
         ax.set_title('Ground-truth y')
     plt.xticks([], [])
     plt.yticks([], [])
 
-    ax = fig.add_subplot(3, 3, index*3 + 3)
+    ax = fig.add_subplot(3, 3, index * 3 + 3)
     ax.imshow(out.squeeze().detach().numpy())
     if index == 0: 
         ax.set_title('Model prediction')
@@ -212,4 +208,4 @@ fig.show()
 #
 # However, as you can see, these predictions are noisier than we would expect for a model evaluated 
 # at the same resolution at which it was trained. Leveraging the FNO's discretization-invariance, there
-# are other ways to scale the outputs of the FNO to train a true super-resolution capability. 
+# are other ways to scale the outputs of the FNO to train a true super-resolution capability.
