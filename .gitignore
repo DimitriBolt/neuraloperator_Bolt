@@ -79,3 +79,8 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+/darcyFlow/darcy_test_16.pt
+/darcyFlow/darcy_test_32.pt
+/darcyFlow/darcy_train_16.pt
+/darcyFlow/diffusion_coefficient_rotation.gif
+/darcyFlow/solution_rotation.gif

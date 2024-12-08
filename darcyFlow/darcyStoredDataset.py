@@ -9,7 +9,8 @@ x1 = np.linspace(0, 1, grid_size)
 x2 = np.linspace(0, 1, grid_size)
 X1, X2 = np.meshgrid(x1, x2)
 dx = 1 / (grid_size - 1)
-Stop_a_0 = 5  # Default value for a_0 stop
+mode = "test"  # Choose between "train" and "test"
+Stop_a_0 = 100 if mode == "train" else 5  # Default value for a_0 stop
 alpha_range = range(1, 10 + 1)  # Alpha range
 
 
@@ -65,10 +66,10 @@ u_tensor = torch.tensor(u_values, dtype=torch.float32)
 
 # Save tensors in a dictionary
 data = {"x": a_tensor, "y": u_tensor}
-torch.save(data, "darcy_test_32.pt")
-print("Tensors saved to 'darcy_test_32.pt'")
+torch.save(data, "darcy_" + mode + "_" + str(grid_size) + ".pt")
+print("Tensors saved to 'darcy_" + mode + "_" + str(grid_size) + ".pt'")
 
-# Visualization for a0=5 and alpha=1
+# Visualization for a0=5 and alpha=1"
 a0_vis = 5
 alpha_vis = 1
 a_vis = a0_vis * np.exp(-alpha_vis * (X1 ** 2 + X2 ** 2))
